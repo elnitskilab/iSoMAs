@@ -1,16 +1,17 @@
-#' iSoMAs: SOmatic Mutation associated Alternative Splicing
+#' iSoMAs: iSoform expression and somatic Mutation Association
 #'
-#' \code{iSoMAs} is an efficient computational pipeline based on principal component analysis techniques for
-#' exploring the role of somatic mutations in shaping the landscape of alternative splicing via both cis-
-#' and trans-acting mechanisms.
+#' \code{iSoMAs} is an efficient computational pipeline based on principal component analysis (PCA) techniques
+#' for exploring the role of somatic mutations in shaping the landscape of gene isoform expression at the
+#' transcriptome level.
 #'
 #' iSoMAs integrates sample-matched RNA-seq and DNA-seq data to study the association between gene somatic
-#' mutations and gene isoform expression. The iSoMAs workflow consists of two steps: In the first step,
-#' the high-dimensional gene isoform expression matrix (d=59,866 derived from the 15,448 multi-isoform genes)
-#' for each cancer type is trimmed by mean.var.plot method (built in the Seurat toolkit) into a more informative
-#' expression matrix, which keeps only the most variable isoforms but is still high-dimensional (d~3,500).
-#' After that, the Principal Component Analysis (PCA) is performed to further reduce the dimension of the
-#' informative expression matrix into a much lower-dimensional PC score matrix (d=50) by calculating a PC
+#' mutation and gene isoform expression via both cis- and trans-acting mechanisms.
+#' The iSoMAs workflow consists of two steps:
+#' In the first step, the high-dimensional gene isoform expression matrix (d=59,866 derived from the 15,448
+#' multi-isoform genes) for each cancer type is trimmed by mean.var.plot method (built in the Seurat toolkit)
+#' into a more informative expression matrix, which keeps only the most variable isoforms but is still
+#' high-dimensional (d~3,500). After that, the PCA is performed to further reduce the dimension of the
+#' informative expression matrix into a much lower-dimensional PC score matrix (d<=50) by calculating a PC
 #' loading matrix. Each column of the PC loading matrix performs a particular linear combination of the top
 #' variable isoforms into a meta-isoform, with the combination coefficients stored in the corresponding column
 #' of the PC loading matrix. All the meta-isoforms comprise the coordinates of the new low-dimensional space.
@@ -48,9 +49,9 @@
 #' @ntop.gene Number of top genes from genes_test for test.
 #'
 #' @return This function returns a list with the following 20 elements:
-#' pca, pvals_all, pvals_all_sorted, normal.markers, genes_test, min.cells, min.features, dim_data.iso, dim_iso, project,
+#' pca, pvals_all, pvals_all_sorted, genes_test, min.cells, min.features, dim_data.iso, dim_iso, project,
 #' mut.samp.thres, varType, varClassification, group1, group2, nPCs, res.cluster, scale.factor,
-#' normalization.method, selection.method, iso_rt, time_stamp
+#' normalization.method, selection.method, iso, time_stamp
 #'
 #' @references Hua Tan, ..., Laura Elnitski (2022): iSoMAs: Finding isoform expression and somatic mutation associations in human cancers
 #' @import Seurat PCA process
