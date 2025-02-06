@@ -1,4 +1,5 @@
-do_PCscore_approximation <- function(res_isomas,iso,add.method = 'accumulatively',
+do_PCscore_approximation <- function(res_isomas,myGene.mut='TP53',
+                                     add.method = 'accumulatively',
                                      sign.PC='both',verbose = 100){
   # perform PC score approximation with the top features added accumulatively (
   # or individually)
@@ -8,7 +9,19 @@ do_PCscore_approximation <- function(res_isomas,iso,add.method = 'accumulatively
   pvals_sig = get_pvals_sig(pvals_all,myGene = myGene.mut)
   PC = names(pvals_sig)[1]
 
-  scale.data = iso@assays$RNA@scale.data #[1] 53963   517
+  iso = res_isomas$iso
+  if(is.null(iso)){
+    cat('iso is NULL, set return.Seurat=T when running iSoMAs\n')
+  }
+  ### added @layers to extract scale.data, added row/column names manually, by HT on 2/6/2025 @4C08
+  scale.data = as.data.frame(iso@assays$RNA@layers$scale.data) #53963*517
+  cells = as.data.frame(iso@assays$RNA@cells) #517*3
+  features = as.data.frame(iso@assays$RNA@features) #53963*3
+  clnms = rownames(cells)[cells$scale.data] #517
+  rwnms = rownames(features)[features$scale.data] #53963
+  rownames(scale.data) = rwnms
+  colnames(scale.data) = clnms
+  ###
   scale.data.loadings = t(scale.data[rownames(pca@feature.loadings),]) #[1] 517 3315
   feature.loadings = pca@feature.loadings #3315,50
 

@@ -23,7 +23,7 @@ run_PCA_Seurat <- function(data.iso,res.cluster = 0.5, scale.factor = 10000,
   # dim of iso: 53963, 517
 
   iso <- NormalizeData(iso, normalization.method = normalization.method, scale.factor = scale.factor)
-  iso <- FindVariableFeatures(iso, selection.method = selection.method)
+  iso <- FindVariableFeatures(iso, selection.method = selection.method,nfeatures=10000)
   varFeatures = VariableFeatures(iso) #3315
   cat(paste0("selection.method of mean.var.plot (mvp) for FindVariableFeatures was used,
              length of VariableFeatures(iso): ",length(varFeatures),"\n"))

@@ -26,13 +26,13 @@ knitr::opts_chunk$set(
 # Introduction
 This iSoMAs package contains the proposed “iSoMAs” (iSoform expression and somatic Mutation Association) algorithm (function `iSoMAs`), an efficient computational pipeline based on principal component analysis (PCA) techniques for exploring the association between somatic single nucleotide variant (SNV) and gene isoform expression through both cis- and trans-regulatory mechanisms. We have shown that iSoMAs is more efficient and versatile than existing methods in identification of SNV-isoform expression associations. Since iSoMAs implements differential analysis along a small number of PC coordinates (always ≤50) rather than along thousands of original transcript axes directly, it dramatically outperforms the existing models in efficiency. Furthermore, iSoMAs searches for the SNV-associated isoform expression over the whole transcriptome simultaneously, indicating its versatility compared to previous studies. Most importantly, iSoMAs overcomes the limitation of the low mutation frequencies of most cancer genes by examining the association between an SNV and the meta-isoform expression quantified as the PC score, well reducing the false positive rate incurred by the traditional gene-by-gene association study.
 
-iSoMAs integrates sample-matched RNA-seq and DNA-seq data to study the association between gene somatic mutations and gene isoform expression. The iSoMAs workflow consists of two steps: In the first step, the high-dimensional gene isoform expression matrix (`d=59,866` derived from the `15,448` multi-isoform genes) for each cancer type is trimmed by mean.var.plot method (built in the Seurat toolkit) into a more informative expression matrix, which keeps only the most variable isoforms but is still high-dimensional (`d~3,500`). After that, the Principal Component Analysis (PCA) is performed to further reduce the dimension of the informative expression matrix into a much lower-dimensional PC score matrix (`d<=50`) by calculating a PC loading matrix. Each column of the PC loading matrix performs a particular linear combination of the top variable isoforms into a meta-isoform, with the combination coefficients stored in the corresponding column of the PC loading matrix. All the meta-isoforms comprise the coordinates of the new low-dimensional space. In the second step, a differential PC score analysis is conducted along each of the 50 PC-coordinates based on the mutation status of the studied gene by Wilcoxon rank-sum test. Following the differential PC score analysis, the significant genes (termed iSoMAs genes) are determined if the minimum of the 50 p-values [defined as `minP = min{P1,P2,...,P50}`] is smaller than a predefined threshold (i.e.,`minP<1e-3`).
+iSoMAs integrates sample-matched RNA-seq and DNA-seq data to study the association between gene somatic mutations and gene isoform expression. The iSoMAs workflow consists of two steps: In the first step, the high-dimensional gene isoform expression matrix (`d=59,866` derived from the `15,448` multi-isoform genes) for each cancer type is trimmed by mean.var.plot method (built in the Seurat toolkit) into a more informative expression matrix, which keeps only the most variable isoforms but is still high-dimensional (`d~3,500`). After that, the Principal Component Analysis (PCA) is performed to further reduce the dimension of the informative expression matrix into a much lower-dimensional PC score matrix (`d<=50`) by calculating a PC loading matrix. Each column of the PC loading matrix performs a particular linear combination of the top variable isoforms into a meta-isoform, with the combination coefficients stored in the corresponding column of the PC loading matrix. All the meta-isoforms comprise the coordinates of the new low-dimensional space. In the second step, a differential PC score analysis is conducted along each of the 50 PC-coordinates based on the mutation status of the studied gene by Wilcoxon rank-sum test. Following the differential PC score analysis, the significant genes (termed candidate iSoMAs genes) are identified if the minimum of the 50 p-values [defined as `minP = min{P1,P2,...,P50}`] is smaller than a predefined threshold (i.e.,`minP<1e-3`). The iSoMAs genes are eventually determined after a two-step multiple testing correction procedure on all candidate iSoMAs genes.
 
 ```{r pressure, echo=FALSE, fig.cap="", fig.align="center", out.width = '95%'}
 knitr::include_graphics("iSoMAs_pipeline.png")
 ```
 
-In this tutorial, we guide users to execute iSoMAs and visualize/interpret the iSoMAs results step-by-step. This tutorial was implemented on R version 4.3.1 (2023-06-16) on macOS Monterey 12.6.5. The latest developmental version of iSoMAs can be downloaded from GitHub and installed from source by `devtools::install_github('elnitskilab/iSoMAs')`. After installation, we load the package as below:
+In this tutorial, we guide users to execute iSoMAs and visualize/interpret the iSoMAs results step-by-step. This tutorial was implemented on R version 4.4.0 (2024-04-24) on macOS Sonoma 14.4.1. The latest developmental version of iSoMAs can be downloaded from GitHub and installed from source by `devtools::install_github('elnitskilab/iSoMAs')`. After installation, we load the package as below:
 
 
 ```{r setup}
@@ -59,6 +59,7 @@ res_isomas = iSoMAs(data.iso,data.maf,gene_to_iso,iso_to_gene,
                   genes_test=NULL,
                   stat.method="wilcox",
                   ntop.gene=100, minP.sorted = T,
+                  return.Seurat = T,
                   filename = "res_iSoMAs_TCGA-LUAD.RData")
 ```
 
@@ -116,7 +117,7 @@ Differential PC score analysis along significant PC-coordinates upon gene somati
 
 ```{r fig.align="center", fig.width = 5}
 plot_PCscore_along_PCs(res_isomas,data.maf,myGene.mut,PCs=PCs_sig,label.comp="p.signif",
-                       title.legend=myGene.mut,title.plot=project,fs=16,sz=10,
+                       title.legend=myGene.mut,title.plot=project,fs=12,sz=8,
                        legend.position = c(0.75,0.15),
                        xlab = NULL,method = "wilcox",
                        legend.direction = "vertical")
@@ -136,27 +137,24 @@ plot_feature_loadings_along_PCs(res_isomas,PCs=PCs_sig,PC.ord = 'PC_2',fs=16)
 Heatmap shows scaled expression levels of the top positive and negative isoforms of all samples ordered by their PC scores along PC_2 axis in LUAD cancer. The isoforms were ranked by the PC loading value along PC_2 axis. In this example, we include the TP53 mutation status of samples in the column annotation bar. Users can add new columns to `iso@meta.data` to account for other sample information (e.g., survival, drug response, tumor stage, tumor purity, etc.). This figure clearly shows the enrichment of samples with TP53 mutation in samples with high level of PC score, high level of some genes (e.g., TPX2) and low level of some other genes (e.g., SELENBP2).
 
 ```{r fig.align="center", fig.width = 10}
-iso = run_PCA_Seurat(data.iso=trim_features_and_samples_TCGA(data.iso,gene_to_iso,iso_to_gene),
-                     res_isomas=res_isomas)
-Mutations = get_maf_of_interest_TCGA(data.maf,
-                                     myGene=myGene.mut,
-                                     mySamples=rownames(iso@meta.data))
-iso@meta.data$Mutation = Mutations$Mutation
-data.heat = plot_isomas_heatmap(iso,dims = PCs_sig[1], nfeat.pos = 6, nfeat.neg = 6,
-                               anno_row = F, anno_col = T, anno_col_keys = c("Mutation"),
+# iso = run_PCA_Seurat(data.iso=trim_features_and_samples_TCGA(data.iso,gene_to_iso,iso_to_gene),res_isomas=res_isomas)
+Mutations = get_maf_of_interest_TCGA(data.maf,myGene=myGene.mut,mySamples=rownames(res_isomas$iso@meta.data))
+res_isomas$iso@meta.data$Mutation = Mutations$Mutation
+data.heat = plot_isomas_heatmap(res_isomas,dims = PCs_sig[1], nfeat.pos = 6, nfeat.neg = 6,
+                               anno_row = T, anno_col = T, anno_col_keys = c("Mutation"),
                                anno_legend = T, get.data = F,fs = 16,
-                               show_rwnms = T,
+                               show_rwnms = T,plot.heat=T,
                                iso_to_gene = iso_to_gene, show_gname = T,
-                               title=paste0(project,", ", myGene.mut))
+                               title.plot=paste0(project,", ", myGene.mut))
 ```
 
 
 ## Plot correlation between PC score and isoform expression
 
-The function `plot_correlation_PCscore_isoExpr2` generates a volcano-style figure showing the Spearman correlation between the PC score along a particular PC-axis and the expression level of the top isoforms associated with a iSoMAs gene. The x and y axes represent the Spearman correlation coefficient ($\rho$) and the `-log10(p-value)` respectively. The significant correlation between PC score and isoform expression level is critical for ensuring that those top isoforms are also significantly associated with the iSoMAs gene mutation status as the PC score does (with high probability).
+The function `plot_correlation_PCscore_isoExpr` generates a volcano-style figure showing the Spearman correlation between the PC score along a particular PC-axis and the expression level of the top isoforms associated with a iSoMAs gene. The x and y axes represent the Spearman correlation coefficient ($\rho$) and the `-log10(p-value)` respectively. The significant correlation between PC score and isoform expression level is critical for ensuring that those top isoforms are also significantly associated with the iSoMAs gene mutation status as the PC score does (with high probability).
 
 ```{r warning=FALSE,fig.align="center", fig.width = 5}
-plot_correlation_PCscore_isoExpr2(res_isomas,iso,nfeat.pos = NULL, nfeat.neg = NULL, nfeat.pos.mark=50, nfeat.neg.mark=50, PCs=PCs_sig[1])
+plot_correlation_PCscore_isoExpr(res_isomas,nfeat.pos = NULL, nfeat.neg = NULL, nfeat.pos.mark=50, nfeat.neg.mark=50, PCs=PCs_sig[1])
 ```
 
 
@@ -181,17 +179,16 @@ data.iso.mut = plot_iso_expr_upon_gene_mutation(
 In this section, we regenerate the PC score with the top transcripts (gene expression at isoform-level). Users can designate the number of top isoforms used to approximate the PC score along a specific PC-axis. We will see that using all features (in this example, `3315` variable isoforms) completely regenerates the PC score.
 
 ```{r fig.align="center", fig.width=10}
-res_PCapprox = do_PCscore_approximation(res_isomas,iso,add.method = 'accumulatively',
+res_PCapprox = do_PCscore_approximation(res_isomas,myGene.mut = myGene.mut,
+                                        add.method = 'accumulatively',
                                         sign.PC='both',verbose = 0)
 plist = plot_PCscore_approximation(res_PCapprox)
 ggpubr::ggarrange(plotlist = plist[1:6],ncol = 3,nrow = 2)
 ```
 
-
 # Reference
 
-iSoMAs: Finding isoform expression and somatic mutation associations in human cancers
+Hua Tan, Valer Gotea, Sushil K. Jaiswal, Nancy E. Seidel, David O. Holland, Kevin Fedkenheuer, Abdel G. Elkahloun, Sara R. Bang-Christensen, Laura Elnitski. iSoMAs: Finding isoform expression and somatic mutation associations in human cancers. PLOS Computational Biology 2025, accepted.
 
-Hua Tan, Valer Gotea, David O. Holland, Kevin Fedkenheuer, Sushil K. Jaiswal, Nancy Seidel, Sara Bang-Christensen, Laura Elnitski*
 
 

@@ -39,9 +39,9 @@ plot_iso_expr_upon_gene_mutation <- function(data.iso,Mutations,gene_to_iso, myG
     value.name = paste0(myGene.iso," (%)")
   }else if(Log2){
     data.iso = log2(1+data.iso)
-    valueName = "Log2RSEM"
+    valueName = "Log2FPKM"
   }else{
-    valueName = "RSEM"
+    valueName = 'FPKM'
   }
 
   # ymax = (max(data.iso) - min(data.iso))*1.1
@@ -85,7 +85,7 @@ plot_iso_expr_upon_gene_mutation <- function(data.iso,Mutations,gene_to_iso, myG
                        label.y.npc = label.y.npc,
                        size=sz)+
     grids(linetype = "dashed",color = "grey92")+
-    labs(x="",color=myGene.mut)+
+    labs(x=myGene.iso,color=myGene.mut)+
     # lims(y=c(0,ymax))+
     ggtitle(title)+
     theme(

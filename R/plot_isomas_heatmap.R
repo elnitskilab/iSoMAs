@@ -1,10 +1,10 @@
-plot_isomas_heatmap <- function(iso, dims=2, nfeat.pos=12, nfeat.neg=12,
+plot_isomas_heatmap <- function(res_isomas, dims=2, nfeat.pos=12, nfeat.neg=12,
                                anno_row=T, anno_col=T, anno_legend=F,
                                anno_col_keys = c("TUMOR_STAGE","seurat_clusters","Mutation"),
-                               title=NULL, get.data=F, lgd = T,trimLarge=T,
+                               title.plot=NULL, get.data=F, lgd = T,trimLarge=T,
                                show_rwnms=T, show_clnms=F,show_gname=F,
                                iso_to_gene = NULL,fs_row=16,fs_col=16,
-                               fs=16,plot=T){
+                               fs=16,plot.heat=T){
 
   if(is.numeric(dims)){
     PCs = paste0("PC_",dims)
@@ -14,8 +14,21 @@ plot_isomas_heatmap <- function(iso, dims=2, nfeat.pos=12, nfeat.neg=12,
     PCs = dims
   }
 
-  scale.data = as.data.frame(iso@assays$RNA@scale.data)
-  feature.loadings = as.data.frame(iso@reductions$pca@feature.loadings)
+  iso = res_isomas$iso
+  if(is.null(iso)){
+    cat('iso is NULL, set return.Seurat=T when running iSoMAs\n')
+  }
+
+  ### added @layers to extract scale.data, added row/column names manually, by HT on 2/6/2025 @4C08
+  scale.data = as.data.frame(iso@assays$RNA@layers$scale.data) #53963*517
+  cells = as.data.frame(iso@assays$RNA@cells) #517*3
+  features = as.data.frame(iso@assays$RNA@features) #53963*3
+  clnms = rownames(cells)[cells$scale.data] #517
+  rwnms = rownames(features)[features$scale.data] #53963
+  rownames(scale.data) = rwnms
+  colnames(scale.data) = clnms
+  ###
+  feature.loadings = as.data.frame(iso@reductions$pca@feature.loadings) #3315*50
 
   ##--
   feature.pos = data.frame(feature.loadings[feature.loadings[,PCs]>0,PCs,drop=F])
@@ -37,31 +50,18 @@ plot_isomas_heatmap <- function(iso, dims=2, nfeat.pos=12, nfeat.neg=12,
 
   feature.select = c(rownames(feature.pos)[1:nfeat.pos],rownames(feature.neg)[1:nfeat.neg])
 
-  if(anno_row){
-    annotation_row = data.frame(PC_direction=c(rep("Positive",nfeat.pos),
-                                               rep("Negative",nfeat.neg)))
-    annotation_row$PC_direction = factor(annotation_row$PC_direction,
-                                         levels = c("Positive","Negative"),
-                                         ordered = T)
-    rownames(annotation_row) = feature.select
-  }else{
-    annotation_row = NA
-  }
-  ##--
-
-  cell.embeddings = as.data.frame(iso@reductions$pca@cell.embeddings)
+  cell.embeddings = as.data.frame(iso@reductions$pca@cell.embeddings) #517*50
   cell.PCs = cell.embeddings[,PCs,drop=F]
   cell.PCs = cell.PCs[order(cell.PCs[,PCs]),PCs,drop=F]
 
   scale.data.select = scale.data[feature.select,rownames(cell.PCs)]
-  # scale.data.select[abs(scale.data.select)>2] = 2 #this was wrong
   scale.data.select[scale.data.select > 2] = 2
   scale.data.select[scale.data.select < -2] = -2 #by HT on 5/3/22
   #
   if(anno_col){
     annotation_col = iso@meta.data[colnames(scale.data.select), anno_col_keys,drop=F]
-    # colnames(annotation_col)[2] = "Clusters"
     annotation_col[,PCs] = cell.PCs[rownames(annotation_col),PCs]
+    # print(str(annotation_col))
   }else{
     annotation_col = NA
   }
@@ -73,10 +73,22 @@ plot_isomas_heatmap <- function(iso, dims=2, nfeat.pos=12, nfeat.neg=12,
     warning("if gene names not shown, check iso_to_gene availability")
   }
 
-  if(plot){
+  if(anno_row){ #it's important to put this chunk behind the 'show_gname' option, 2/6/2025
+    annotation_row = data.frame(PC_direction=c(rep("Positive",nfeat.pos),
+                                               rep("Negative",nfeat.neg)))
+    annotation_row$PC_direction = factor(annotation_row$PC_direction,
+                                         levels = c("Positive","Negative"),
+                                         ordered = T)
+    rownames(annotation_row) = rownames(scale.data.select)
+    # print(str(annotation_row))
+  }else{
+    annotation_row = NA
+  }
+
+  if(plot.heat){
     pheatmap(scale.data.select,cluster_rows = F,cluster_cols = F,
              show_rownames = show_rwnms, show_colnames = show_clnms,scale = "row",
-             main = title,
+             main = title.plot,
              annotation_col = annotation_col,
              annotation_row = annotation_row,
              annotation_names_row = F,
@@ -92,5 +104,4 @@ plot_isomas_heatmap <- function(iso, dims=2, nfeat.pos=12, nfeat.neg=12,
                 annotation_col=annotation_col,
                 feature.select=feature.select))
   }
-
 }
