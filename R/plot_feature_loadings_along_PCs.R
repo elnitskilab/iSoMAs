@@ -1,4 +1,6 @@
 plot_feature_loadings_along_PCs <- function(res_isomas,PCs="PC_2",PC.ord=NULL,fs=16){
+  library(ggplot2)
+
   if(is.null(PC.ord)){
     PC.ord = PCs[1]
     cat(paste0('PC.ord not designated, set to the first PC-axis in PCs: ',PC.ord,'\n'))

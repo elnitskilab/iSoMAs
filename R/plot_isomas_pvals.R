@@ -6,6 +6,7 @@ plot_isomas_pvals <- function(pvals_all,sorted = T,pval.thres = 1e-3,
   # revised by Hua Tan on 11/23/2022 @4C08
 
   library(pheatmap)
+
   if(sorted){
     minP = apply(pvals_all[,jPC1:ncol(pvals_all)],1,min)
     pvals_all = pvals_all[order(minP),]

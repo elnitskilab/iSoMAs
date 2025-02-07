@@ -1,6 +1,6 @@
 #' iSoMAs: iSoform expression and somatic Mutation Association
 #'
-#' \code{iSoMAs} is an efficient computational pipeline based on principal component analysis (PCA) techniques
+#' \code{iSoMAs} is an efficient computational pipeline based on principal component analysis (PCA) technique
 #' for exploring the role of somatic mutations in shaping the landscape of gene isoform expression at the
 #' transcriptome level.
 #'
@@ -16,9 +16,10 @@
 #' variable isoforms into a meta-isoform, with the combination coefficients stored in the corresponding column
 #' of the PC loading matrix. All the meta-isoforms comprise the coordinates of the new low-dimensional space.
 #' In the second step, a differential PC score analysis is conducted along each of the 50 PC-coordinates based
-#' on the mutation status of the studied gene by Wilcoxon rank-sum test. Following the differential PC score
-#' analysis, the significant genes (termed iSoMAs genes) are determined if the minimum of the 50 p-values is
-#' smaller than a predefined threshold (Pmin<1e-3).
+#' on the mutation status of the studied gene by Wilcoxon rank-sum test. Following the differential PC score analysis,
+#' the significant genes (candidate iSoMAs genes) are identified if the minimum of the 50 p-values [defined as
+#' `minP = min{P1,P2,...,P50}`] is smaller than a predefined threshold (i.e.,`minP<1e-3`). The iSoMAs genes are
+#' eventually determined after a two-step multiple testing correction procedure on all candidate iSoMAs genes.
 #'
 #' @param data.iso Gene expression matrix at the isoform-level. Each row represents a transcript (isoform) and
 #' each column represents a sample.
@@ -53,7 +54,6 @@
 #' mut.samp.thres, varType, varClassification, group1, group2, nPCs, res.cluster, scale.factor,
 #' normalization.method, selection.method, iso, time_stamp
 #'
-#' @references Hua Tan, ..., Laura Elnitski (2022): iSoMAs: Finding isoform expression and somatic mutation associations in human cancers
 #' @import Seurat PCA process
 #' @export
 
@@ -75,6 +75,10 @@ iSoMAs <- function(data.iso,data.maf,gene_to_iso=NULL, iso_to_gene=NULL,
   # iSoMAs.R: main function for iSoMAs pipeline
   # copyright (c) Hua Tan, warm.tan@gmail.com
   # 11/2/2022 @4C08
+
+  packages.iSoMAs = c("Matrix", "Seurat", "pbapply", "dplyr", "ggplot2", "ggpmisc", "ggrepel", "ggpubr", "pheatmap")
+  tryCatch(install.packages(setdiff(packages.iSoMAs, rownames(installed.packages()))), error=function(e) e,
+           finally = cat(paste0('\niSoMAs requires the following packages: ',paste(packages.iSoMAs,collapse = ', '),'\n')))
 
   library(Matrix)
   library(Seurat)

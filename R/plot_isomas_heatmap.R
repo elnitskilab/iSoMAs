@@ -6,6 +6,8 @@ plot_isomas_heatmap <- function(res_isomas, dims=2, nfeat.pos=12, nfeat.neg=12,
                                iso_to_gene = NULL,fs_row=16,fs_col=16,
                                fs=16,plot.heat=T){
 
+  library(pheatmap)
+
   if(is.numeric(dims)){
     PCs = paste0("PC_",dims)
   }else if(!grepl("^PC_",dims)){
